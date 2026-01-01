@@ -13,6 +13,10 @@ datasource db {
   provider = "postgresql"
 }
 
+/**
+ * =================== BLOG MODELS ===================
+ */
+
 model Post {
   id         String     @id @default(uuid())
   title      String     @db.VarChar(225)
@@ -22,7 +26,7 @@ model Post {
   status     PostStatus @default(PUBLISHED)
   tags       String[]
   views      Int        @default(0)
-  authorId   String // better auth
+  authorId   String
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   comments   Comment[]
@@ -34,7 +38,7 @@ model Post {
 model Comment {
   id       String    @id @default(uuid())
   content  String    @db.Text
-  authorId String // better auth
+  authorId String
   postId   String
   post     Post      @relation(fields: [postId], references: [id])
   parentId String?
@@ -61,78 +65,74 @@ enum CommentStatus {
   REJECT
 }
 
+/**
+ * =================== BETTER AUTH MODELS ===================
+ */
+
 model User {
   id            String   @id @default(cuid())
   name          String?
-  email         String   @unique
-  emailVerified Boolean? @default(false)
+  email         String?  @unique
+  emailVerified Boolean  @default(false)
   image         String?
-  password      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  role   String? @default("USER")
+  role   String  @default("USER")
   phone  String?
-  status String? @default("ACTIVE")
+  status String  @default("ACTIVE")
 
-  accounts Account[]
   sessions Session[]
+  accounts Account[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("users")
+  @@map("user")
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  ipAddress String?
-  userAgent String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("sessions")
+  @@map("session")
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  type                  String    @default("credential")
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
   @@index([userId])
-  @@map("accounts")
+  @@map("account")
 }
 
 model Verification {
   id         String   @id @default(cuid())
   identifier String
   value      String
-  expires    DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([identifier])
-  @@map("verifications")
+  @@map("verification")
 }
