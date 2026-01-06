@@ -11,12 +11,17 @@ router.get(
 
 router.get(
     "/:postId",
+    auth(UserRole.USER, UserRole.ADMIN),
     PostController.getPostById
+)
+router.get(
+    "/:my-posts",
+    PostController.getMyPosts
 )
 
 router.post(
     "/",
-    auth(UserRole.USER),
+    auth(UserRole.USER, UserRole.ADMIN),
     PostController.createPost
 )
 
