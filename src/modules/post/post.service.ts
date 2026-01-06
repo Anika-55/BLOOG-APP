@@ -1,4 +1,4 @@
-import { Post, PostStatus } from "../../../generated/prisma/client";
+import { CommentStatus, Post, PostStatus } from "../../../generated/prisma/client";
 import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
 
@@ -33,7 +33,7 @@ const getAllPost = async ({
     limit: number,
     skip: number,
     sortBy: string,
-    sortOrder:string
+    sortOrder: string
 }) => {
     const andConditions: PostWhereInput[] = []
 
@@ -93,33 +93,79 @@ const getAllPost = async ({
         where: {
             AND: andConditions
         },
-        orderBy: sortBy && sortOrder ? {
-           [ sortBy]:sortOrder
-        } : {createdAt:"desc"}
+        orderBy: {
+            [sortBy]: sortOrder
+        },
+        include: {
+            _count: {
+                select: { comments: true }
+            }
+        }
     });
-    return allPost;
+
+    const total = await prisma.post.count({
+        where: {
+            AND: andConditions
+        }
+    })
+    return {
+        data: allPost,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    };
 }
 
 const getPostById = async (postId: string) => {
     return await prisma.$transaction(async (tx) => {
         await tx.post.update({
-        where: {
-            id:postId
-        },
-        data: {
-            views: {
-                increment:1
+            where: {
+                id: postId
+            },
+            data: {
+                views: {
+                    increment: 1
+                }
             }
-        }
-    })
-    const postData = await tx.post.findUnique({
-        where:{
-            id:postId
-        }
-    })
+        })
+        const postData = await tx.post.findUnique({
+            where: {
+                id: postId
+            },
+            include: {
+                comments: {
+                    where: {
+                        parentId: null,
+                        status: CommentStatus.APPROVED
+                    },
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        replies: {
+                            where: {
+                                status: CommentStatus.APPROVED
+                            },
+                            orderBy: { createdAt: "asc" },
+                            include: {
+                                replies: {
+                                    where: {
+                                        status: CommentStatus.APPROVED
+                                    },
+                                    orderBy: { createdAt: "asc" }
+                                }
+                            }
+                        }
+                    }
+                },
+                _count: {
+                    select: { comments: true }
+                }
+            }
+        })
         return postData
-})
-    
+    })
 }
 
 export const postService = {
