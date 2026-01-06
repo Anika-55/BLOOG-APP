@@ -76,9 +76,9 @@ const moderateComment = async (req: Request, res: Response) => {
         const result = await CommentService.moderateComment(commentId as string, req.body)
         res.status(200).json(result)
     } catch (e) {
-        console.log(e)
+        const errorMessage = (e instanceof Error) ? e.message :   "Comment update failed!"
         res.status(400).json({
-            error: "Comment update failed!",
+            error: errorMessage,
             details: e
         })
     }
