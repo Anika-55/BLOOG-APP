@@ -38,7 +38,7 @@ function errorHandler(
     else if (err instanceof Prisma.PrismaClientInitializationError) {
         if (err.errorCode === "P1000") {
             statusCode = 401;
-            errorMessage = "Authentication failed. Please check your creditials!"
+            errorMessage = "Authentication failed. Please check your credentials!"
         }
         else if (err.errorCode === "P1001") {
             statusCode = 400;
